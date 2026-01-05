@@ -1,0 +1,26 @@
+{
+  "toxicity": {
+    "review": 0.164,
+    "block": 0.414
+  },
+  "hate": {
+    "review": 0.044,
+    "block": 0.294
+  },
+  "sexual": {
+    "review": 0.133,
+    "block": 0.383
+  },
+  "violence": {
+    "review": 0.09,
+    "block": 0.34
+  },
+  "scam": {
+    "review": null,
+    "block": null
+  },
+  "spam": {
+    "review": null,
+    "block": null
+  }
+}

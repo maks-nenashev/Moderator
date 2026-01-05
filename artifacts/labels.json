@@ -1,0 +1,13 @@
+{
+  "version": "v1",
+  "task": "text_moderation",
+  "type": "multi_label",
+  "labels": [
+    "toxicity",
+    "hate",
+    "sexual",
+    "violence",
+    "scam",
+    "spam"
+  ]
+}
