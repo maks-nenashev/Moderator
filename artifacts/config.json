@@ -1,14 +1,11 @@
 {
   "tokenizer": {
-    "num_words": 30000,
-    "oov_token": "<OOV>",
-    "lower": true,
-    "filters": ""
+    "max_words": 50000
   },
   "sequence": {
     "max_len": 200,
     "padding": "post",
     "truncating": "post"
-  },
-  "version": "v1"
+  }
 }
+

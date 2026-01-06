@@ -1,0 +1,7 @@
+{
+  "model": "v2_multilingual",
+  "toxicity": {
+    "review": 0.54,
+    "block": 0.79
+  }
+}
