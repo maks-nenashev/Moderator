@@ -1,0 +1,16 @@
+# ======================
+# Raw data
+# ======================
+data/
+
+# ======================
+# ML models / artifacts
+# ======================
+artifacts/*.keras
+artifacts/*.h5
+artifacts/*.joblib
+artifacts/*.pkl
+artifacts/*.bin
+
+# v3 models
+artifacts/v3/*

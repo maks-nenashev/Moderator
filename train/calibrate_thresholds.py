@@ -76,11 +76,9 @@ for i, label in enumerate(labels):
     best_threshold = thresh[best_idx] if best_idx < len(thresh) else 0.5
 
     # Conservative block threshold (higher confidence)
-    block_threshold = min(best_threshold + 0.25, 0.95)
-
     thresholds[label] = {
         "review": round(float(best_threshold), 3),
-        "block": round(float(block_threshold), 3)
+        "block": None
     }
 
     print(
