@@ -1,4 +1,4 @@
-## This project is an AI-based text moderation system built for a global asynchronous search platform.
+## Project is an AI-based text moderation system built for a global asynchronous search platform.
 
 The platform works as a worldwide search engine and data system, where users can publish and search information across countries, languages, and regions. Because the system is global, content moderation is critical.
 
