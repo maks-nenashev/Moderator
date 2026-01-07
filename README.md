@@ -1,67 +1,168 @@
-## This project is an AI-based text moderation system built for a global asynchronous search platform.
+# Global AI Moderation System
 
-The platform works as a worldwide search engine and data system, where users can publish and search information across countries, languages, and regions. Because the system is global, content moderation is critical.
+## Project Overview
 
-This moderation service is designed to be scalable, multilingual, production-ready, and model-driven. It is not a single ML model, but a moderation system composed of multiple models, each solving a specific task.
+This repository implements a **production-oriented AI moderation decision system** used within a global asynchronous search platform.
 
-## Why This System Exists
+The system is designed for real-world deployment, not as a research prototype or single-model demo.
 
-Global platforms face real problems such as toxic language, hate speech, sexual intent and solicitation, threats and violence, spam and scam content, and many languages beyond English. A single model cannot handle all of this reliably.
+Its primary goal is to provide controlled, explainable, and conservative moderation decisions across multiple risk domains and languages.
 
-This project solves the problem by combining multiple models with a policy layer that makes final decisions.
+---
 
-## System Architecture
-
+## Why a System (Not a Single Model)
 ![AI Moderation System Architecture](moderation_system_architecture.png)
+
 The system is built as a modular AI service:
+Content moderation cannot be reliably solved by a universal model.
 
-API Layer (FastAPI): receives text from the platform and returns moderation decisions (allow, review, block)
+Different risk domains exhibit:
+- different linguistic patterns,
+- different tolerance for false positives,
+- different operational consequences.
 
-Model States: each model is loaded independently and can be replaced or disabled without breaking the system
+This project follows a strict architectural principle:
 
-Policy Layer: combines signals from all models and makes the final decision
+- one model = one responsibility
+- models produce signals, not decisions
+- final decisions are made by policy logic
 
-## Models Inside the System
+This separation allows independent model evolution, safer thresholds, and predictable system behavior.
 
-v1 — Base Toxicity Model
-English-focused model that detects toxicity, hate, sexual content, violence, spam, and scam. It is trained using neural networks (Keras) and uses calibrated thresholds.
+---
 
-v2 — Multilingual Toxicity Model
-Works across multiple languages and detects general toxicity where v1 may be weak. It is used as confirmation and false-positive protection. It does not blindly block content and only escalates decisions.
+## Problem Domains Covered
 
-v3 — Sexual Intent Detection (WEST group)
-Covers EN, DE, FR, ES, and NL languages. Detects sexual intent and solicitation using TF-IDF and Logistic Regression. This model never blocks content directly and is used only as a signal to help distinguish flirting from explicit intent or harassment.
+The system is designed to handle multiple moderation risks:
 
-## Policy Logic
+- Toxicity / harassment
+- Hate speech (including protected groups)
+- Sexual intent / solicitation
+- Threats / violent intent
+- Spam / scam behavior (planned)
 
-The system does not trust models blindly. All decisions are handled by the policy layer:
+Each domain is treated as an independent signal source.
 
-    v1 detects strong aggression signals
+---
 
-    v2 confirms or rejects them
+## High-Level Architecture
 
-    v3 adds contextual sexual intent signals
+### Preprocessing Layer
 
-The final decision is made: allow, review, or block
+Responsible for:
+- Unicode-safe normalization,
+- language-agnostic cleanup,
+- preparation for model inference.
 
-This approach reduces false positives, keeps human review where needed, and is safe for production use.
+This layer is deterministic and model-independent.
 
-## Why This Is Not a Toy Project
+---
 
-This project demonstrates real ML system architecture, multi-model orchestration, threshold calibration, multilingual strategy, and production-style API design. It is much closer to real ML Engineering work than to a single standalone ML model.
+### Model Inference Layer
 
-## Deployment
+Contains multiple specialized ML models.
 
-The system is designed to run as an independent service, deployable with Docker, and easily connected to a larger platform. All trained models, tokenizers, and thresholds are stored in the artifacts/ directory and loaded at runtime.
+Key properties:
+- one model per risk domain,
+- no shared responsibilities,
+- models output scores, not decisions,
+- models are independently replaceable.
 
-## Target Platform
+---
 
-This moderation system is built for integration with findway.pro — a global asynchronous search and data platform. The service protects the platform, users, and data quality at scale.
+### Policy & Orchestration Layer
 
-## Future Plans
+The policy layer is the core decision-making component.
 
-Planned improvements include adding more language groups (PL, CZ, SK, LT, etc.), image moderation, better datasets and retraining pipelines, extended policy logic with feedback loops, and full production monitoring.
+Responsibilities:
+- aggregation of model signals,
+- application of conservative thresholds,
+- enforcement of decision rules,
+- resolution of conflicting signals.
 
-## Author
+The system produces exactly three outcomes:
+- `allow`
+- `review`
+- `block`
 
-Built as a long-term production system, not a demo. Designed with scalability, safety, and real-world use in mind.
+---
+
+### API Layer
+
+The system is exposed via a FastAPI-based HTTP service.
+
+The API layer:
+- defines stable integration contracts,
+- triggers orchestration,
+- does not contain business logic.
+
+---
+
+## Decision Policy & Explainability
+
+Explainability is a design constraint, not an afterthought.
+
+The architecture ensures that every decision can be traced to:
+- evaluated signals,
+- applied thresholds,
+- policy rules.
+
+While the API response may remain minimal, the internal system supports auditability and policy iteration.
+
+---
+
+## Multilingual & Cultural Strategy
+
+Multilingual moderation is treated as a first-class concern.
+
+Design assumptions:
+- languages are grouped into clusters,
+- risk thresholds may vary by locale,
+- policies can be language-aware.
+
+This avoids applying uniform global thresholds to heterogeneous linguistic contexts.
+
+---
+
+## Production Considerations
+
+The system is designed with production constraints in mind:
+
+- strict separation of concerns,
+- predictable latency via parallel inference,
+- conservative defaults,
+- readiness for monitoring and recalibration,
+- extensibility without architectural rewrites.
+
+---
+
+## Current Limitations
+
+Known limitations include:
+- partial language coverage,
+- limited policy complexity compared to large-scale platforms,
+- absence of human-in-the-loop tooling in this repository,
+- constrained training data for some domains.
+
+These limitations are explicit and guide further development.
+
+---
+
+## Roadmap & Future Extensions
+
+Planned extensions:
+- additional risk-domain models,
+- improved multilingual calibration,
+- richer policy configuration,
+- integration with human review workflows,
+- expansion beyond text (e.g. images, metadata).
+
+---
+
+## Final Note
+
+This project is intentionally built as an **AI decision system**, not an ML demo.
+
+Machine learning provides signals.  
+Policy logic controls outcomes.  
+Safety and explainability take priority.
