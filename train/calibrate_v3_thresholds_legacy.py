@@ -1,4 +1,7 @@
 # train/calibrate_v3_thresholds.py
+# LEGACY CALIBRATION SCRIPT
+# F1/recall-based thresholding.
+# NOT USED for v3 sexual intent (signal-only, FP-first).
 
 import json
 from pathlib import Path
