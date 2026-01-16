@@ -1,0 +1,8 @@
+{
+  "version": "v3.0.0",
+  "task": "sexual_intent",
+  "language_group": "WEST",
+  "model_type": "tfidf_logreg",
+  "auc": 0.9724,
+  "samples": 5830
+}

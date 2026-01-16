@@ -1,122 +1,108 @@
 import json
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Any, List
+
+
+def load_json(path: Path, required: bool = True, default: Optional[Dict] = None) -> Dict[str, Any]:
+    if not path.exists():
+        if required:
+            raise FileNotFoundError(f"Threshold file not found: {path}")
+        return default or {}
+    with path.open("r", encoding="utf-8") as f:
+        return json.load(f)
 
 # =========================
-# Load v1 thresholds (review-only)
+# Load thresholds
 # =========================
-THRESHOLDS_V1_PATH = Path("artifacts/policy_thresholds.json")
-with open(THRESHOLDS_V1_PATH, "r") as f:
-    THRESHOLDS_V1 = json.load(f)
+ARTIFACTS_DIR = Path("artifacts")
+THRESHOLDS_V1_PATH = ARTIFACTS_DIR / "policy_thresholds.json"
+THRESHOLDS_V2_PATH = ARTIFACTS_DIR / "policy_thresholds_v2.json"
+THRESHOLDS_V3_PATH = ARTIFACTS_DIR / "v3" / "thresholds.json"
+THRESHOLDS_V4_PATH = ARTIFACTS_DIR / "v4" / "thresholds.json"
 
-# =========================
-# Load v2 thresholds (ONLY source of block)
-# =========================
-THRESHOLDS_V2_PATH = Path("artifacts/policy_thresholds_v2.json")
-with open(THRESHOLDS_V2_PATH, "r") as f:
-    THRESHOLDS_V2 = json.load(f)
+THRESHOLDS_V1 = load_json(THRESHOLDS_V1_PATH, required=False, default={})
+THRESHOLDS_V2 = load_json(THRESHOLDS_V2_PATH, required=False, default={})
+THRESHOLDS_V3 = load_json(THRESHOLDS_V3_PATH, required=False, default={})
+THRESHOLDS_V4 = load_json(THRESHOLDS_V4_PATH, required=False, default={})
 
-V2_REVIEW = THRESHOLDS_V2["toxicity"]["review"]
-V2_BLOCK  = THRESHOLDS_V2["toxicity"]["block"]
+# Настройка порогов (v2 Toxicity)
+toxicity_cfg = THRESHOLDS_V2.get("toxicity", {}) or {}
+V2_REVIEW = toxicity_cfg.get("review", 0.5)
+V2_BLOCK = toxicity_cfg.get("block", 0.9)
 
-# =========================
-# Load v3 thresholds (sexual intent signal)
-# =========================
-THRESHOLDS_V3_PATH = Path("artifacts/v3/thresholds.json")
-with open(THRESHOLDS_V3_PATH, "r") as f:
-    THRESHOLDS_V3 = json.load(f)
-
-V3_REVIEW = THRESHOLDS_V3["review_threshold"]
+# Настройка порогов (Sexual Intent)
+V3_REVIEW = THRESHOLDS_V3.get("review_threshold", 0.3477) # наш откалиброванный порог
+V4_REVIEW = THRESHOLDS_V4.get("review_threshold", 0.42)   # порог для CEE (обычно чуть выше из-за шума)
 
 # =========================
 # V1 policy (REVIEW ONLY)
 # =========================
-def apply_policy_v1(scores: Dict[str, float]) -> Dict:
-    """
-    v1 is a content classifier.
-    It NEVER blocks. It can only raise review signals.
-    """
+def apply_policy_v1(scores: Dict[str, float]) -> Dict[str, Any]:
     reasons = []
-
     for label, score in scores.items():
         cfg = THRESHOLDS_V1.get(label)
-        if not cfg or cfg.get("review") is None:
-            continue
-
-        if score >= cfg["review"]:
+        if not cfg: continue
+        review_thr = cfg.get("review")
+        if review_thr is not None and score >= review_thr:
             reasons.append(label)
-
-    decision = "review" if reasons else "allow"
-
-    return {
-        "decision": decision,
-        "reasons": reasons,
-        "scores": scores
-    }
+    
+    return {"decision": "review" if reasons else "allow", "reasons": reasons}
 
 # =========================
-# Full policy: v1 + v2 + v3
+# Full policy: v1 + v2 + v3 + v4
 # =========================
 def apply_policy(
     scores_v1: Dict[str, float],
     score_v2: Optional[float] = None,
-    v3: Optional[Dict] = None
-) -> Dict:
+    v3: Optional[Dict[str, Any]] = None,
+    v4: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
     """
     FINAL moderation policy.
-
-    Rules:
-    - v1: weak content signal, never blocks, never alone
-    - v2: ONLY source of block
-    - v3: sexual intent signal → review
+    - v2: BLOCK signal (Toxicity)
+    - v3/v4: REVIEW signal (Sexual Intent)
     """
+    reasons = []
+    v3_score = v3.get("score") if v3 else None
+    v4_score = v4.get("score") if v4 else None
 
     # ---- Step 1: v2 TERMINAL BLOCK ----
     if score_v2 is not None and score_v2 >= V2_BLOCK:
         return {
             "decision": "block",
             "reasons": ["confirmed_aggression"],
-            "scores": scores_v1,
             "v2_score": score_v2
         }
 
-    # ---- Step 2: v3 sexual intent signal ----
-    if v3 is not None:
-        v3_score = v3.get("score")
-        if v3_score is not None and v3_score >= V3_REVIEW:
-            return {
-                "decision": "review",
-                "reasons": ["sexual_intent_signal"],
-                "scores": scores_v1,
-                "v2_score": score_v2,
-                "v3_score": v3_score
-            }
+    # ---- Step 2: v3 & v4 Sexual Intent signals ----
+    if v3_score is not None and v3_score >= V3_REVIEW:
+        reasons.append("sexual_intent_west")
+    
+    if v4_score is not None and v4_score >= V4_REVIEW:
+        reasons.append("sexual_intent_cee")
 
-    # ---- Step 3: v2 soft toxicity review ----
+    # ---- Step 3: v2 Toxicity review ----
     if score_v2 is not None and score_v2 >= V2_REVIEW:
-        return {
-            "decision": "review",
-            "reasons": ["multilingual_toxicity"],
-            "scores": scores_v1,
-            "v2_score": score_v2
-        }
+        reasons.append("multilingual_toxicity")
 
-    # ---- Step 4: v1 content review (ONLY with confirmation) ----
-    v1_result = apply_policy_v1(scores_v1)
-    if v1_result["decision"] == "review":
-        # v1 is allowed to escalate ONLY if something else already smells
-        if score_v2 is not None and score_v2 >= V2_REVIEW:
-            return {
-                "decision": "review",
-                "reasons": v1_result["reasons"],
-                "scores": scores_v1,
-                "v2_score": score_v2
-            }
+    # ---- Step 4: v1 content review (Escalation) ----
+    v1_res = apply_policy_v1(scores_v1)
+    # v1 эскалирует, если есть хоть один другой "подозрительный" признак
+    if v1_res["decision"] == "review" and (score_v2 is not None or v3_score is not None or v4_score is not None):
+        reasons.extend(v1_res["reasons"])
 
-    # ---- Step 5: allow ----
+    # Final Decision construction
+    decision = "review" if reasons else "allow"
+    
     return {
-        "decision": "allow",
-        "reasons": [],
-        "scores": scores_v1,
-        "v2_score": score_v2
+        "decision": decision,
+        "reasons": list(set(reasons)), # убираем дубликаты
+        "scores_v1": scores_v1,
+        "v2_score": score_v2,
+        "v3_score": v3_score,
+        "v4_score": v4_score
     }
+
+if __name__ == "__main__":
+    # Тест: v4 задетектил польский подкат
+    print(apply_policy({"insult": 0.1}, score_v2=0.1, v3={"score": 0.1}, v4={"score": 0.5}))

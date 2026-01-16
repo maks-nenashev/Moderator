@@ -45,10 +45,10 @@ def load_language_csv(path: Path) -> pd.DataFrame:
         )
 
     # country group validation
-    if df["country_group"].nunique() != 1 or df["country_group"].iloc[0] != "WEST":
+    if df["country_group"].nunique() != 1 or df["country_group"].iloc[0] != "CEE":
         raise ValueError(
             f"Invalid country_group in {path.name}. "
-            f"Expected only 'WEST'."
+            f"Expected only 'CEE'."
         )
 
     # basic sanity checks
