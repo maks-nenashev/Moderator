@@ -164,4 +164,5 @@ Planned extensions:
 This project is intentionally built as an **AI decision system**, not an ML demo.
 
 Machine learning provides signals.  
-P
+Policy logic controls outcomes.  
+Safety and explainability take priority.
