@@ -1,1 +1,4 @@
-{"review_threshold": 0.3304, "version": "v5.1"}
+{
+    "review_threshold": 0.45,
+    "version": "v5.1"
+}
