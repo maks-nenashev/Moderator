@@ -10,7 +10,7 @@ def main():
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
 
-    df = pd.read_csv(args.data)
+    df = pd.read_csv(args.data, on_bad_lines='skip')
 
     model = joblib.load(args.model)
     vectorizer = joblib.load(args.vectorizer)
