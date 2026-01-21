@@ -1,0 +1,8 @@
+{
+  "model_version": "v3.1",
+  "task": "sexual_intent_west",
+  "model_type": "tfidf_logreg_char",
+  "auc": 0.9926,
+  "estimated_98_percentile_threshold": 0.5117,
+  "samples_total": 7744
+}
