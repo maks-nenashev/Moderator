@@ -1,63 +1,32 @@
+import joblib
 import json
-from typing import List, Dict
-import numpy as np
-from keras.models import load_model
-from keras.preprocessing.sequence import pad_sequences
-from keras.preprocessing.text import tokenizer_from_json
-
-from app.ml.preprocess import normalize_batch
-
+import os
+from pathlib import Path
 
 class ModelLoader:
     def __init__(self):
-        self.model = None
-        self.tokenizer = None
-        self.labels: List[str] = []
-        self.config: Dict = {}
-        self.model_version: str = "none"
+        self.models = {}
+        self.vectorizers = {}
+        self.thresholds = {}
+        self.active_versions = ["v3", "v3.1", "v4", "v4.1", "v5", "v5.1", "v6", "v6.1"] 
 
     def load(self):
-        # load config
-        with open("artifacts/config.json", "r") as f:
-            self.config = json.load(f)
+        for ver in self.active_versions:
+            path = Path(f"artifacts/{ver}")
+            if (path / "model.joblib").exists():
+                self.models[ver] = joblib.load(path / "model.joblib")
+                self.vectorizers[ver] = joblib.load(path / "vectorizer.joblib")
+                
+                with open(path / "thresholds.json", "r") as f:
+                    self.thresholds[ver] = json.load(f)
+                print(f"[LOADER] Engine {ver} loaded successfully.")
 
-        # load labels
-        with open("artifacts/labels.json", "r") as f:
-            labels_cfg = json.load(f)
-            self.labels = labels_cfg["labels"]
-            self.model_version = labels_cfg.get("version", "v1")
-
-        # load tokenizer
-        with open("artifacts/tokenizer.json", "r") as f:
-            self.tokenizer = tokenizer_from_json(f.read())
-
-        # load model
-        self.model = load_model("artifacts/model.keras")
-
-    def is_loaded(self) -> bool:
-        return self.model is not None
-
-    def predict(self, texts: List[str]) -> List[Dict[str, float]]:
-        assert self.is_loaded(), "Model not loaded"
-
-        texts = normalize_batch(texts)
-        seqs = self.tokenizer.texts_to_sequences(texts)
-
-        X = pad_sequences(
-            seqs,
-            maxlen=self.config["sequence"]["max_len"],
-            padding=self.config["sequence"]["padding"],
-            truncating=self.config["sequence"]["truncating"]
-        )
-
-        preds = self.model.predict(X)
-
-        results = []
-        for row in preds:
-            results.append({
-                label: float(score)
-                for label, score in zip(self.labels, row)
-            })
-
-        return results
-
+    def predict(self, text, version="v5"):
+        if version not in self.models:
+            return 0.0
+        
+        vec = self.vectorizers[version]
+        model = self.models[version]
+        
+        X = vec.transform([text])
+        return float(model.predict_proba(X)[:, 1][0])
