@@ -2,7 +2,7 @@ Ensemble Architecture: 8 Models Operating as One Distributed Safety System
 
 FindWay moderation is not based on a single “intelligent” AI model.
 The system was intentionally designed as a distributed ensemble architecture where multiple lightweight models collaborate through a centralized policy and calibration layer.
-
+![Architecture Diagram](architectura_ai.png)
 Instead of relying on one monolithic neural network, the platform uses 8 specialized moderation models organized into four regional language zones:
 
 CIS (Ukrainian / Russian)
