@@ -1,20 +1,19 @@
 import json
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 
 import joblib
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-# Определяем базовый путь к проекту относительно текущего файла
+# Базовый путь к проекту
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 ARTIFACTS_DIR = BASE_DIR / "artifacts"
 
 # Глобальный кэш моделей в RAM
 MODELS: Dict[str, Dict[str, Any]] = {}
-
-ENGINES = ["v3", "v3.1", "v4", "v4.1", "v5", "v5.1", "v6", "v6.1"]
+ENGINES = ["v1", "v3", "v3.1", "v3.2", "v4", "v4.1", "v4.2", "v5", "v5.1", "v5.2", "v6", "v6.1", "v6.2"]  
 
 
 @asynccontextmanager
@@ -30,7 +29,9 @@ async def lifespan(app: FastAPI):
         thr_file = eng_path / "thresholds.json"
 
         if eng_path.exists() and model_file.exists() and vec_file.exists():
-            threshold_data = json.loads(thr_file.read_text())
+            threshold_data = {}
+            if thr_file.exists():
+                threshold_data = json.loads(thr_file.read_text())
             
             MODELS[eng] = {
                 "model": joblib.load(model_file),
@@ -43,7 +44,6 @@ async def lifespan(app: FastAPI):
             
     yield
     
-    # Очистка ресурсов при остановке
     MODELS.clear()
     print("[SHUTDOWN] All ML engines purged from RAM.")
 
@@ -56,32 +56,29 @@ app = FastAPI(
 
 
 class ModerationRequest(BaseModel):
-    text: str
+    text: Optional[str] = None
+    texts: Optional[List[str]] = None
 
 
-@app.post("/predict")
-async def predict(data: ModerationRequest):
-    """
-    Инференс векторных оценок из RAM без обращения к диску.
-    """
-    if not data.text or not data.text.strip():
+def process_single_text(text: str) -> Dict[str, Any]:
+    """Вспомогательная функция инференса для одного фрагмента текста"""
+    if not text or not text.strip():
         return {
             "decision": "ALLOW",
+            "detected_by": [],
             "scores": {},
-            "text": data.text
+            "text": text
         }
 
     scores = {}
     detected_engines = []
 
-    # Прогон текста по всем cached моделям
     for eng, assets in MODELS.items():
         vec = assets["vectorizer"]
         model = assets["model"]
         threshold = assets["threshold"]
 
-        # Трансформация и расчет вероятности
-        X = vec.transform([data.text])
+        X = vec.transform([text])
         prob = float(model.predict_proba(X)[0][1])
         
         scores[eng] = prob
@@ -95,7 +92,40 @@ async def predict(data: ModerationRequest):
         "decision": "REVIEW" if is_toxic else "ALLOW",
         "detected_by": detected_engines,
         "scores": scores,
-        "text": data.text
+        "text": text
+    }
+
+
+# ======================================================
+# РОУТЫ СЕРВИСА
+# ======================================================
+
+@app.post("/predict")
+async def predict(data: ModerationRequest):
+    """
+    Универсальный инференс: принимает либо "text", либо "texts".
+    Возвращает массив результатов [{decision, scores, ...}],
+    чтобы полностью соответствовать логике Faraday / Rails Client.
+    """
+    input_texts = [data.text] if data.text else (data.texts or [])
+    
+    if not input_texts:
+        raise HTTPException(status_code=400, detail="No text provided")
+
+    results = [process_single_text(t) for t in input_texts]
+    return results
+
+
+@app.api_route("/", methods=["GET", "POST", "HEAD"])
+async def root_fallback():
+    """
+    Заглушка для корневых запросов.
+    Полностью устраняет 405 Method Not Allowed в логах Uvicorn.
+    """
+    return {
+        "status": "ready",
+        "service": "FindWay Data Sentinel NLP",
+        "loaded_engines": list(MODELS.keys())
     }
 
 

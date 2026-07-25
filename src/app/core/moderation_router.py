@@ -5,7 +5,7 @@ class ModerationRouter:
     def __init__(self, artifacts_path="artifacts"):
         self.engines = {}
         # Регистрируем наши живые движки
-        for version in ["v3", "v3.1", "v4", "v4.1", "v5", "v5.1", "v6", "v6.1"]:
+        for version in ["v1", "v3", "v3.1", "v3.2", "v4", "v4.1", "v4.2", "v5", "v5.1", "v5.2", "v6", "v6.1", "v6.2"]:
             path = Path(artifacts_path) / version
             model_path = path / "model.joblib"
             vec_path = path / "vectorizer.joblib"
