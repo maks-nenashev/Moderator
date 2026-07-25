@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  ai-moderator:
+    image: findway-moderator:v4
+    container_name: ai-moderator
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app  # Твой код из локальной папки /app прокидывается в контейнер
+    environment:
+      - PYTHONUNBUFFERED=1
+      # Здесь можно будет добавить API_KEY в будущем для безопасности
+    deploy:
+      resources:
+        limits:
+          memory: 3.5G # Ограничиваем, чтобы не "положить" твои 4ГБ ОЗУ
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m" # Чтобы логи не съели всё место на диске
+        max-file: "3"

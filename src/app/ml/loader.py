@@ -1,32 +1,42 @@
 import joblib
 import json
-import os
 from pathlib import Path
+import logging
+
+logger = logging.getLogger(__name__)
+
+class ModelEngine:
+    def __init__(self, version: str, artifacts_dir: Path):
+        self.version = version
+        self.dir = artifacts_dir / version
+        self.model = joblib.load(self.dir / "model.joblib")
+        self.vectorizer = joblib.load(self.dir / "vectorizer.joblib")
+        
+        with open(self.dir / "thresholds.json") as f:
+            data = json.load(f)
+            self.review_threshold = data.get("review_threshold", 0.5)
+
+    def predict_score(self, text: str) -> float:
+        X = self.vectorizer.transform([text])
+        return float(self.model.predict_proba(X)[0, 1])
 
 class ModelLoader:
-    def __init__(self):
-        self.models = {}
-        self.vectorizers = {}
-        self.thresholds = {}
-        self.active_versions = ["v3", "v3.1", "v4", "v4.1", "v5", "v5.1", "v6", "v6.1"] 
+    def __init__(self, artifacts_dir: str = "artifacts"):
+        self.base_path = Path(artifacts_dir)
+        self.engines = {}
+        self.load_all()
 
-    def load(self):
-        for ver in self.active_versions:
-            path = Path(f"artifacts/{ver}")
-            if (path / "model.joblib").exists():
-                self.models[ver] = joblib.load(path / "model.joblib")
-                self.vectorizers[ver] = joblib.load(path / "vectorizer.joblib")
-                
-                with open(path / "thresholds.json", "r") as f:
-                    self.thresholds[ver] = json.load(f)
-                print(f"[LOADER] Engine {ver} loaded successfully.")
+    def load_all(self):
+        if not self.base_path.exists():
+            logger.error(f"Artifacts path {self.base_path} does not exist.")
+            return
 
-    def predict(self, text, version="v5"):
-        if version not in self.models:
-            return 0.0
-        
-        vec = self.vectorizers[version]
-        model = self.models[version]
-        
-        X = vec.transform([text])
-        return float(model.predict_proba(X)[:, 1][0])
+        for version_dir in sorted(self.base_path.iterdir()):
+            if version_dir.is_dir() and (version_dir / "model.joblib").exists():
+                version = version_dir.name
+                try:
+                    self.engines[version] = ModelEngine(version, self.base_path)
+                except Exception as e:
+                    logger.error(f"Failed to load engine {version}: {e}")
+
+        print(f"✅ Loaded engines: {list(self.engines.keys())}")

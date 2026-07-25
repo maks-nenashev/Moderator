@@ -1,168 +1,114 @@
-# Global AI Moderation System
+Ensemble Architecture: 8 Models Operating as One Distributed Safety System
 
-## Project Overview
+FindWay moderation is not based on a single “intelligent” AI model.
+The system was intentionally designed as a distributed ensemble architecture where multiple lightweight models collaborate through a centralized policy and calibration layer.
+https://nenashev.net/en/portfolio
 
-This repository implements a **production-oriented AI moderation decision system** used within a global asynchronous search platform.
+![Architecture Diagram](architectura_ai.png)
+Instead of relying on one monolithic neural network, the platform uses 8 specialized moderation models organized into four regional language zones:
 
-The system is designed for real-world deployment, not as a research prototype or single-model demo.
+CIS (Ukrainian / Russian)
+Central Europe
+Baltic Region
+Western Europe
 
-Its primary goal is to provide controlled, explainable, and conservative moderation decisions across multiple risk domains and languages.
+Each regional zone contains two complementary models operating in parallel:
 
----
+Semantic Model (Word-Level Analysis)
 
-## Why a System (Not a Single Model)
-![AI Moderation System Architecture](moderation_system_architecture.png)
+The first model focuses on:
 
-The system is built as a modular AI service:
-Content moderation cannot be reliably solved by a universal model.
+contextual understanding
+semantic meaning
+intent detection
+behavioral interpretation
 
-Different risk domains exhibit:
-- different linguistic patterns,
-- different tolerance for false positives,
-- different operational consequences.
+It evaluates whether the message carries harmful, manipulative, or dangerous intent even when written in relatively “clean” language.
 
-This project follows a strict architectural principle:
+Symbolic / Obfuscation Model (Character-Level Analysis)
 
-- one model = one responsibility
-- models produce signals, not decisions
-- final decisions are made by policy logic
+The second model is optimized for adversarial text patterns and bypass attempts.
 
-This separation allows independent model evolution, safer thresholds, and predictable system behavior.
+It detects:
 
----
+character substitutions (a → @, o → 0)
+fragmented words
+hidden insults
+symbolic masking
+spam obfuscation
+deliberately corrupted language
 
-## Problem Domains Covered
+This layer was specifically designed to handle real-world abuse scenarios where users intentionally try to bypass moderation systems.
 
-The system is designed to handle multiple moderation risks:
+Parallel Consensus Instead of Blind AI Decisions
 
-- Toxicity / harassment
-- Hate speech (including protected groups)
-- Sexual intent / solicitation
-- Threats / violent intent
-- Spam / scam behavior (planned)
+In FindWay, no individual model acts as the final authority.
 
-Each domain is treated as an independent signal source.
+All moderation outputs are collected by a centralized policy decision layer which evaluates:
 
----
+combined risk scores
+model agreement
+regional context
+confidence thresholds
+operational safety rules
 
-## High-Level Architecture
+The final moderation status is determined through strict business logic:
 
-### Preprocessing Layer
+✅ Approved
+⚠ Pending Review
+⛔ Blocked
 
-Responsible for:
-- Unicode-safe normalization,
-- language-agnostic cleanup,
-- preparation for model inference.
+This architecture avoids the common industry mistake of treating AI as “magic.”
 
-This layer is deterministic and model-independent.
+The platform does not blindly trust one neural network prediction.
+Instead, AI functions as a probabilistic signal system operating under controlled policy governance.
 
----
+Real-Time Adaptive Thresholding
 
-### Model Inference Layer
+One of the core priorities of the system is minimizing false positives.
 
-Contains multiple specialized ML models.
+If the confidence score remains below a critical risk threshold, the platform intentionally prefers:
 
-Key properties:
-- one model per risk domain,
-- no shared responsibilities,
-- models output scores, not decisions,
-- models are independently replaceable.
+user continuity over aggressive blocking.
 
----
+Because the moderation models are lightweight and modular, thresholds can be recalibrated dynamically in production without retraining the entire ensemble.
 
-### Policy & Orchestration Layer
+For example:
 
-The policy layer is the core decision-making component.
+sudden spam waves
+regional abuse campaigns
+coordinated bypass attacks
 
-Responsibilities:
-- aggregation of model signals,
-- application of conservative thresholds,
-- enforcement of decision rules,
-- resolution of conflicting signals.
+can be mitigated through live threshold adjustments and policy adaptation.
 
-The system produces exactly three outcomes:
-- `allow`
-- `review`
-- `block`
+This allows the platform to remain operationally flexible while preserving moderation stability under changing conditions.
 
----
+Designed for Distributed, High-Load Environments
 
-### API Layer
+The moderation pipeline was built for asynchronous distributed systems where:
 
-The system is exposed via a FastAPI-based HTTP service.
+inference speed
+fault tolerance
+scalability
+operational resilience
 
-The API layer:
-- defines stable integration contracts,
-- triggers orchestration,
-- does not contain business logic.
+are more important than isolated benchmark accuracy.
 
----
+The architecture integrates directly into the FindWay ecosystem through:
 
-## Decision Policy & Explainability
+asynchronous processing queues
+Rails orchestration services
+AI microservices
+vector similarity infrastructure
+policy-based moderation routing
 
-Explainability is a design constraint, not an afterthought.
+This enables the system to process multilingual user-generated content in real time while maintaining stable behavior under production load.
 
-The architecture ensures that every decision can be traced to:
-- evaluated signals,
-- applied thresholds,
-- policy rules.
+Safety Through Redundancy
 
-While the API response may remain minimal, the internal system supports auditability and policy iteration.
+The core philosophy behind the system is simple:
 
----
+reliability emerges from coordinated specialization, not from one oversized model.
 
-## Multilingual & Cultural Strategy
-
-Multilingual moderation is treated as a first-class concern.
-
-Design assumptions:
-- languages are grouped into clusters,
-- risk thresholds may vary by locale,
-- policies can be language-aware.
-
-This avoids applying uniform global thresholds to heterogeneous linguistic contexts.
-
----
-
-## Production Considerations
-
-The system is designed with production constraints in mind:
-
-- strict separation of concerns,
-- predictable latency via parallel inference,
-- conservative defaults,
-- readiness for monitoring and recalibration,
-- extensibility without architectural rewrites.
-
----
-
-## Current Limitations
-
-Known limitations include:
-- partial language coverage,
-- limited policy complexity compared to large-scale platforms,
-- absence of human-in-the-loop tooling in this repository,
-- constrained training data for some domains.
-
-These limitations are explicit and guide further development.
-
----
-
-## Roadmap & Future Extensions
-
-Planned extensions:
-- additional risk-domain models,
-- improved multilingual calibration,
-- richer policy configuration,
-- integration with human review workflows,
-- expansion beyond text (e.g. images, metadata).
-
----
-
-## Final Note
-
-This project is intentionally built as an **AI decision system**, not an ML demo.
-
-Machine learning provides signals.  
-Policy logic controls outcomes.  
-Safety and explainability take priority.
+Instead of building one fragile “super-AI,”
+FindWay uses distributed intelligence, layered moderation logic, and adaptive calibration mechanisms to achieve resilient and explainable content safety.
