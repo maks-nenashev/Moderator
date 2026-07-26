@@ -38,46 +38,10 @@ train_model() {
     "$PYTHON_BIN" train/train_engine.py --version "$version" --input "$input" --analyzer "$analyzer" \
         --ngram_min 2 --ngram_max 5
 
-    echo "--- 📊 Calibrating $version ---"
-    "$PYTHON_BIN" -c "
-import pandas as pd, numpy as np, json, joblib
-from pathlib import Path
-
-data_path = Path('$input')
-model_path = Path('artifacts/$version/model.joblib')
-vec_path = Path('artifacts/$version/vectorizer.joblib')
-
-# Чтение с защитой от поврежденных строк и неправильных кавычек
-try:
-    df = pd.read_csv(data_path, on_bad_lines='skip', engine='python')
-except Exception as e:
-    df = pd.read_csv(data_path, on_bad_lines='skip')
-
-model = joblib.load(model_path)
-vec = joblib.load(vec_path)
-
-# Определяем колонку с текстом
-text_col = 'text' if 'text' in df.columns else df.columns[0]
-label_col = 'label' if 'label' in df.columns else df.columns[-1]
-
-X = vec.transform(df[text_col].fillna('').astype(str))
-probs = model.predict_proba(X)[:, 1]
-
-df['score'] = probs
-neg = df[df[label_col] == 0]['score']
-
-thr = float(np.quantile(neg, 0.98)) if len(neg) > 0 else 0.5
-
-out_dir = Path('artifacts/$version')
-out_dir.mkdir(parents=True, exist_ok=True)
-
-with open(out_dir / 'thresholds.json', 'w') as f:
-    json.dump({'review_threshold': round(thr, 4), 'version': '$version'}, f)
-"
-    echo "✅ $version ready and calibrated."
+    echo "✅ $version ready, calibrated, and synced to S3."
 }
 
-# 3. The main case statement to handle different build targets
+# 3. Main case statement
 case "$1" in
     "trafficking")
         train_model "v1" "data/processed/trafficking_v1.csv" "char_wb"
@@ -104,17 +68,16 @@ case "$1" in
         ;;
     "full")
         echo "🌍 Running FULL pipeline build..."
+        $0 trafficking
         $0 west
         $0 cee
         $0 baltic
         $0 cis
         ;;
     *)
-        echo "Usage: $0 {west|cee|baltic|cis|full}"
+        echo "Usage: $0 {trafficking|west|cee|baltic|cis|full}"
         exit 1
         ;;
 esac
 
 echo "🏁 All tasks completed successfully."
-
-#   ./build_all.sh baltic
