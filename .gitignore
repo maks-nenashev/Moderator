@@ -1,16 +1,39 @@
 # ======================
-# Raw data
+# Virtual Environments (Блокируем 9000+ файлов)
+# ======================
+venv/
+.venv/
+env/
+ENV/
+lib64/
+
+# ======================
+# Python Cache
+# ======================
+__pycache__/
+*.pyc
+*.pyo
+
+# ======================
+# Raw Data & Archives
 # ======================
 data/
+*.tar.gz
+*.zip
 
 # ======================
-# ML models / artifacts
+# ML Models & Artifacts (Полная изоляция папки)
 # ======================
-artifacts/*.keras
-artifacts/*.h5
-artifacts/*.joblib
-artifacts/*.pkl
-artifacts/*.bin
+artifacts/
+*.keras
+*.h5
+*.joblib
+*.pkl
+*.bin
 
-# v3 models
-artifacts/v3/*
+# ======================
+# System & IDE
+# ======================
+.DS_Store
+.idea/
+.vscode/.env
