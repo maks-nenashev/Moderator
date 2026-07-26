@@ -37,3 +37,11 @@ artifacts/
 .DS_Store
 .idea/
 .vscode/.env
+artifacts/
+*.tar
+*.joblib
+artifacts/
+*.tar
+*.joblib
+nlp-moderator.tar
+*.tar

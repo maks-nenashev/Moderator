@@ -8,3 +8,4 @@ python-dotenv==1.0.1
 pandas
 mlflow
 boto3
+prometheus-client==0.20.0
