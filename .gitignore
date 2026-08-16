@@ -45,3 +45,5 @@ artifacts/
 *.joblib
 nlp-moderator.tar
 *.tar
+.env
+.env

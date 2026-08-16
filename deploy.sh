@@ -1,10 +1,10 @@
 #!/bin/bash
+#!/bin/bash
 SERVER_IP="46.225.23.33"
 REMOTE_PATH="/root/Moderator"
 
-echo "🚀 Синхронизация кода через rsync (Оптимизировано)..."
+echo "🚀 Синхронизация кода через rsync..."
 
-# Убедись, что исключили всё лишнее
 rsync -avz --delete \
       --exclude '.git/' \
       --exclude 'venv/' \
@@ -13,9 +13,12 @@ rsync -avz --delete \
       --exclude '__pycache__/' \
       ./ root@$SERVER_IP:$REMOTE_PATH/
 
-echo "🔄 Перезапуск контейнера на Hetzner..."
-# Исправленная команда (добавлен пробел и полная команда)
-ssh root@$SERVER_IP "cd $REMOTE_PATH && docker compose up -d"
+echo "🔄 Пересборка и перезапуск контейнера на Hetzner..."
+ssh root@$SERVER_IP "cd $REMOTE_PATH && docker compose up -d --build"
+
+echo "🔍 Проверка отдачи метрик Prometheus..."
+sleep 3
+ssh root@$SERVER_IP "curl -sI http://127.0.0.1:8000/metrics | head -n 5"
 
 echo "✅ Деплой завершен!"
 
