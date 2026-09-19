@@ -1,8 +1,0 @@
-{
-  "model_version": "v4.1",
-  "task": "sexual_intent",
-  "language_group": "CEE",
-  "model_type": "tfidf_logreg_char",
-  "auc": 0.9868,
-  "samples": 8254
-}
