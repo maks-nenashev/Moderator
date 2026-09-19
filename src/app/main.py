@@ -22,7 +22,16 @@ except ModuleNotFoundError:
 ARTIFACTS_DIR = BASE_DIR / "artifacts"
 
 MODELS: Dict[str, Dict[str, Any]] = {}
-ENGINES = ["v1", "v3", "v3.1", "v3.2", "v4", "v4.1", "v4.2", "v5", "v5.1", "v5.2", "v6", "v6.1", "v6.2"]  
+ENGINES = [
+    "v1", # Human Trafficking Cluster
+    "v3", "v3.1", "v3.2", # West Cluster
+    "v4", "v4.1", "v4.2", # CEE Cluster
+    "v5", "v5.1", "v5.2", # Baltic Cluster
+    "v6", "v6.1", "v6.2", # CIS Cluster
+    "v7", "v7.1", "v7.2", # Nordic Cluster
+    "v8", "v8.1", "v8.2",  # Balkan Cluster
+    "v9", "v9.1", "v9.2"   # Caucasus Cluster
+] 
 
 # ==============================================================================
 # PROMETHEUS METRICS DECLARATION

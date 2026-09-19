@@ -66,6 +66,21 @@ case "$1" in
         train_model "v6.1" "data/processed/cis_v6_1_slang.csv" "char"
         train_model "v6.2" "data/processed/cis_v6_2_context.csv" "word"
         ;;
+    "nordic")
+        train_model "v7" "data/processed/nordic_v7_base.csv" "word"
+        train_model "v7.1" "data/processed/nordic_v7_1_slang.csv" "char"
+        train_model "v7.2" "data/processed/nordic_v7_2_context.csv" "word"
+        ;;
+    "balkan")
+        train_model "v8" "data/processed/balkan_v8_base.csv" "word"
+        train_model "v8.1" "data/processed/balkan_v8_1_slang.csv" "char"
+        train_model "v8.2" "data/processed/balkan_v8_2_context.csv" "word"
+        ;;
+    "caucasus")
+        train_model "v9" "data/processed/caucasus_v9_base.csv" "word"
+        train_model "v9.1" "data/processed/caucasus_v9_1_slang.csv" "char"
+        train_model "v9.2" "data/processed/caucasus_v9_2_context.csv" "word"
+        ;;
     "full")
         echo "🌍 Running FULL pipeline build..."
         $0 trafficking
@@ -73,9 +88,12 @@ case "$1" in
         $0 cee
         $0 baltic
         $0 cis
+        $0 nordic
+        $0 balkan
+        $0 caucasus
         ;;
     *)
-        echo "Usage: $0 {trafficking|west|cee|baltic|cis|full}"
+        echo "Usage: $0 {trafficking|west|cee|baltic|cis|nordic|balkan|caucasus|full}"
         exit 1
         ;;
 esac
