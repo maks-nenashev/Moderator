@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional
 
 import joblib
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Response, Request
 from pydantic import BaseModel
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, Histogram
 
@@ -29,8 +29,8 @@ ENGINES = [
     "v5", "v5.1", "v5.2", # Baltic Cluster
     "v6", "v6.1", "v6.2", # CIS Cluster
     "v7", "v7.1", "v7.2", # Nordic Cluster
-    "v8", "v8.1", "v8.2",  # Balkan Cluster
-    "v9", "v9.1", "v9.2"   # Caucasus Cluster
+    "v8", "v8.1", "v8.2", # Balkan Cluster
+    "v9", "v9.1", "v9.2"  # Caucasus Cluster
 ] 
 
 # ==============================================================================
@@ -81,7 +81,7 @@ async def lifespan(app: FastAPI):
             MODELS[eng] = {
                 "model": joblib.load(model_file),
                 "vectorizer": joblib.load(vec_file),
-                "threshold": threshold_data.get("review_threshold", 0.5)
+                "threshold": threshold_data.get("review_threshold", threshold_data.get("threshold", 0.5))
             }
             print(f"[LOADER] Engine {eng} cached in RAM.")
 
@@ -96,6 +96,22 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+
+# ==============================================================================
+# LATENCY & QUEUE PROFILING MIDDLEWARE
+# ==============================================================================
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    """
+    Фиксирует чистое время обработки запроса в CPU/ASGI 
+    и возвращает заголовок X-Process-Time-MS для скрипта профилирования очереди.
+    """
+    start_time = time.perf_counter()
+    response = await call_next(request)
+    process_time_ms = (time.perf_counter() - start_time) * 1000.0
+    response.headers["X-Process-Time-MS"] = f"{process_time_ms:.3f}"
+    return response
 
 
 class ModerationRequest(BaseModel):
